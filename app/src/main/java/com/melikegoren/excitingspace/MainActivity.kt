@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.compose.ExcitingSpaceTheme
+import com.google.android.material.color.DynamicColors
 import com.melikegoren.excitingspace.data.remote.ApodApiService
 import com.melikegoren.excitingspace.ui.screens.home.HomeScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             ExcitingSpaceTheme {
                 // A surface container using the 'background' color from the theme
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    HomeScreen(hiltViewModel())
+                    HomeScreen(hiltViewModel(), apiService)
                 }
             }
         }

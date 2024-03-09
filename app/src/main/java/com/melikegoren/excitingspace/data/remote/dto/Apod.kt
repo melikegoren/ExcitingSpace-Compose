@@ -1,5 +1,6 @@
 package com.melikegoren.excitingspace.data.remote.dto
 
+import com.melikegoren.excitingspace.data.local.ApodEntity
 import com.melikegoren.excitingspace.data.remote.model.ApodPhotoModel
 import com.melikegoren.excitingspace.data.remote.model.ApodVideoModel
 
@@ -31,6 +32,28 @@ fun Apod.toApodVideoModel() =
         explanation = this.explanation,
         mediaType = this.media_type,
         serviceVersion = this.service_version,
+        title = this.title,
+        url = this.url
+    )
+
+fun Apod.toApodEntityPhoto() =
+    ApodEntity(
+        date = this.date,
+        explanation = this.explanation,
+        hdurl = this.hdurl,
+        media_type = this.media_type,
+        service_version = this.service_version,
+        title = this.title,
+        url = this.url
+    )
+
+fun Apod.toApodEntityVideo() =
+    ApodEntity(
+        date = this.date,
+        explanation = this.explanation,
+        hdurl = "",
+        media_type = this.media_type,
+        service_version = this.service_version,
         title = this.title,
         url = this.url
     )

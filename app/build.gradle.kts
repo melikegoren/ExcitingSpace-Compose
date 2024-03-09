@@ -80,6 +80,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("com.google.android.material:material:1.11.0")
     //implementation("androidx.compose.material3:material3-android:1.2.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
@@ -102,6 +103,8 @@ dependencies {
 
     //Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.accompanist:accompanist-coil:0.15.0")
+
 
     //WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
@@ -134,6 +137,17 @@ dependencies {
 
     //Gson
     implementation("com.google.code.gson:gson:2.10.1")
+
+    val room_version = "2.6.1"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+
+    // To use Kotlin annotation processing tool (kapt)
+    kapt("androidx.room:room-compiler:$room_version")
+
+    // optional - Kotlin Extensions and Coroutines support for Room
+    implementation("androidx.room:room-ktx:$room_version")
 
 }
 

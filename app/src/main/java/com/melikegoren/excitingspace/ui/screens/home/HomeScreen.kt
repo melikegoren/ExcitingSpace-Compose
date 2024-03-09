@@ -1,10 +1,14 @@
 package com.melikegoren.excitingspace.ui.screens.home
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -28,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -49,7 +55,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -67,6 +72,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.HorizontalAlignmentLine
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -76,49 +82,52 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.example.compose.ExcitingSpaceTheme
 import com.melikegoren.excitingspace.BuildConfig
 import com.melikegoren.excitingspace.R
-import com.melikegoren.excitingspace.common.ClearImageCacheWorker
 import com.melikegoren.excitingspace.data.remote.ApodApiService
 import com.melikegoren.excitingspace.ui.theme.inconsalataFamily
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "SuspiciousIndentation")
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    //apiService: ApodApiService
+    apiService: ApodApiService
 ){
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-//    LaunchedEffect(Unit){
-//        val serviceVersion =  apiService.getApod(BuildConfig.API_KEY).service_version
-//        if(serviceVersion == "video"){
-//            viewModel.apodUiStateVideo(BuildConfig.API_KEY)
-//        }
-//        else{
-//            viewModel.apodUiStatePhoto(BuildConfig.API_KEY)
-//        }
-//    }
-
-                //viewModel.apodUiStateVideo(BuildConfig.API_KEY)
-                viewModel.apodUiStatePhoto(BuildConfig.API_KEY)
-
-
-
     val context = LocalContext.current
+
+    LaunchedEffect(Unit){
+        val serviceVersion =  apiService.getApod(BuildConfig.API_KEY).service_version
+        if(serviceVersion == "video"){
+            viewModel.apodUiStateVideo(BuildConfig.API_KEY)
+        }
+        else{
+            viewModel.apodUiStatePhoto(BuildConfig.API_KEY)
+        }
+    }
+
+    var permissionState by rememberSaveable { mutableStateOf(false) }
+
+    val requestPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            // İzin reddedildi
+            permissionState = isGranted
+        }
+
+    Log.d("permissions", permissionState.toString())
+
 
 
     val snackbarHostState = remember{ SnackbarHostState() }
@@ -130,17 +139,7 @@ fun HomeScreen(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { /*TODO*/ },
 
-                ) {
-                Image(
-                    painter = painterResource(id = R.drawable.download_icon),
-                    contentDescription = "download_icon",
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary))
-            }
-        },
 
     ){ innerPadding->
         val scrollState = rememberScrollState()
@@ -158,7 +157,6 @@ fun HomeScreen(
             when( uiState){
                 is ApodUiState.Success -> {
 
-
                     Row(modifier = Modifier
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .fillMaxWidth(),
@@ -167,7 +165,6 @@ fun HomeScreen(
                             title = (uiState as ApodUiState.Success).data.title.toString(),
                             modifier = Modifier,
                             )
-                        Log.d("titleee",(uiState as ApodUiState.Success).data.url.toString())
                     }
 
                     val url = (uiState as ApodUiState.Success).data.url
@@ -176,26 +173,13 @@ fun HomeScreen(
                         VideoCard(url,context)
                     }
                     else{
-
                         Image(
-                            imageUrl = (uiState as ApodUiState.Success).data.url,
+                            imageUrl = url,
                             modifier = Modifier,
                             context = context
                         )
-//                        DisposableEffect(url) {
-//                            val workRequest = OneTimeWorkRequestBuilder<ClearImageCacheWorker>()
-//                                .setInitialDelay(1, TimeUnit.SECONDS) // Delay the cache clearing to ensure it's done after the image is loaded
-//                                .build()
-//
-//                            WorkManager.getInstance(context)
-//                                .enqueue(workRequest)
-//
-//                            onDispose {
-//                                // Cleanup or additional actions when the effect is disposed
-//                            }
-//                        }
                     }
-
+                    Spacer(modifier = Modifier.padding(4.dp))
 
 
                     ExpandableCard(
@@ -203,9 +187,72 @@ fun HomeScreen(
                         modifier = Modifier
                     )
 
+                    val painter = rememberAsyncImagePainter(
+                        model = ImageRequest.Builder(context)
+                            .data(url)
+                            .size(coil.size.Size.ORIGINAL) // Set the target size to load the image at.
+                            .build()
+                    )
+
+                    Spacer(modifier = Modifier.padding(4.dp))
+
+                    Log.d("statee", url)
+                    Button(
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .padding(horizontal = 20.dp)
+                            .align(Alignment.CenterHorizontally)
+                            .fillMaxWidth(1f)
+                            .wrapContentHeight(Alignment.CenterVertically)
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(20.dp)
+                            ),
+
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                viewModel.saveApodImageToGallery(
+                                    painter,
+                                    context,
+                                    url,
+                                    (uiState as ApodUiState.Success).data.title
+                                )
+                            }
+                            if (permissionState){
+                                viewModel.saveApodImageToGallery(
+                                    painter,
+                                    context,
+                                    url,
+                                    (uiState as ApodUiState.Success).data.title
+                                )
+                            }
+                            else {
+                                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            }
+                        },
+                        ) {
+
+                            Image(
+                                painter = painterResource(id = R.drawable.download_icon),
+                                contentDescription = "download_icon",
+                                modifier = Modifier
+                                    .padding(horizontal = 18.dp)
+                                    .align(Alignment.CenterVertically)
+                                )
+
+                            Text(
+                                text = "Download this image",
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                fontFamily = inconsalataFamily)
+                        }
+
+                    Spacer(modifier = Modifier.padding(10.dp))
+
+
+                    Log.d("statee", "Painter: ${painter}, State: ${painter?.state}")
                 }
                 is ApodUiState.Error -> {
-                    //Text(text = (uiState as ApodUiState.Error).message.toString())
                     ShowSnackbar(
                         scope = scope,
                         snackbarHostState = snackbarHostState,
@@ -213,7 +260,6 @@ fun HomeScreen(
                 }
                 is ApodUiState.Loading -> {
                    ShimmerItem(modifier = Modifier)
-
                 }
             }
         }
@@ -222,14 +268,11 @@ fun HomeScreen(
 
 @Composable
 fun VideoCard(url:String, context: Context){
-//    val url = "dasdas"
-//    val context = LocalContext.current
-
     Card(
         modifier = Modifier
             .height(280.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .fillMaxWidth()) {
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)) {
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -241,6 +284,7 @@ fun VideoCard(url:String, context: Context){
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
                 )
             Spacer(modifier = Modifier.padding(10.dp))
             Text(
@@ -292,19 +336,14 @@ fun VideoCard(url:String, context: Context){
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = RoundedCornerShape(20.dp)
                                 )
-                                .padding(10.dp))
+                                .padding(10.dp),
+                            MaterialTheme.colorScheme.primary
+                            )
 
                     }
-
                 }
-
             }
-
-
         }
-
-
-
     }
 }
 
@@ -346,139 +385,6 @@ fun ShimmerItem(modifier: Modifier){
 
 }
 
-
-@SuppressLint("CoroutineCreationDuringComposition")
-@Composable
-fun ShowSnackbar(
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    error: String,
-    viewModel: HomeViewModel = hiltViewModel(),
-){
-
-    scope.launch{
-        val result = snackbarHostState.showSnackbar(
-            message =  error,
-            actionLabel = "Try again.",
-            duration = SnackbarDuration.Indefinite
-        )
-        
-        when(result){
-            SnackbarResult.ActionPerformed -> {
-                viewModel.apodUiStatePhoto(BuildConfig.API_KEY)
-            }
-
-            SnackbarResult.Dismissed -> {
-            }
-        }
-    }
-}
-
-@Composable
-fun Title(title: String, modifier: Modifier){
-    Text(
-        modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 15.dp)
-            .fillMaxWidth(1f),
-        text = title,
-        textAlign = TextAlign.Center,
-        fontSize = 24.sp,
-        fontFamily = inconsalataFamily,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.primary
-    )
-}
-
-@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
-fun Image(imageUrl: String, modifier: Modifier, context: Context){
-
-    val url by remember { mutableStateOf(imageUrl) }
-
-//    DisposableEffect(url) {
-//        val workRequest = OneTimeWorkRequestBuilder<ClearImageCacheWorker>()
-//            .setInitialDelay(1, TimeUnit.SECONDS) // Delay the cache clearing to ensure it's done after the image is loaded
-//            .build()
-//
-//        WorkManager.getInstance(context)
-//            .enqueue(workRequest)
-//
-//        onDispose {
-//            // Cleanup or additional actions when the effect is disposed
-//        }
-//    }
-
-
-    var scale by remember {
-        mutableFloatStateOf(1f)
-    }
-
-    var offset by remember {
-        mutableStateOf(Offset.Zero)
-    }
-
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(10.dp))
-    ) {
-
-        val state = rememberTransformableState{ zoomChange, panChange, rotationChange ->
-            scale = (scale * zoomChange).coerceIn(1f, 5f)
-
-            val extraWidth = (scale - 1) * constraints.maxWidth
-            val extraHeight = (scale - 1) * constraints.maxHeight
-
-            val maxX = extraWidth / 2
-            val maxY = extraHeight / 2
-
-            offset = Offset(
-                x = (offset.x + panChange.x).coerceIn(-maxX, maxX),
-                y = (offset.y + panChange.y).coerceIn(-maxY, maxY),
-            )
-        }
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = "space",
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(size = 10.dp))
-                .wrapContentSize(Alignment.Center)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
-                .transformable(state),
-
-            )
-
-    }
-
-
-//    GlideImage(
-//        model = url,
-//        contentDescription = "space",
-//        modifier = modifier
-//            .padding(horizontal = 20.dp)
-//            .clip(RoundedCornerShape(size = 10.dp))
-//            .wrapContentSize(Alignment.Center),
-//
-//    )
-}
-
-//@Composable
-//@Preview
-//fun ImagePreview(){
-//    ExcitingSpaceTheme {
-//        Image(url = "sadasd", modifier = Modifier)
-//    }
-//}
-
-
 @Composable
 fun ExpandableCard(
     text: String,
@@ -493,7 +399,7 @@ fun ExpandableCard(
     Box(
         modifier = Modifier
             .fillMaxWidth(1f)
-            .padding(bottom = 80.dp),
+            .padding(bottom = 5.dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -538,32 +444,124 @@ fun ExpandableCard(
                         modifier = modifier.padding(vertical = 5.dp),
                     )
                 }
-                    IconButton(
-                        onClick = { expanded = !expanded },
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                            contentDescription = if (expanded) {
-                                "show less"
-                            } else {
-                                "show more"
-                            }
-                        )
-                    }
-                
+                IconButton(
+                    onClick = { expanded = !expanded },
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = if (expanded) {
+                            "show less"
+                        } else {
+                            "show more"
+                        }
+                    )
+                }
+
             }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview(){
-    ExcitingSpaceTheme {
 
+@SuppressLint("CoroutineCreationDuringComposition")
+@Composable
+fun ShowSnackbar(
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    error: String,
+    viewModel: HomeViewModel = hiltViewModel(),
+){
+
+    scope.launch{
+        val result = snackbarHostState.showSnackbar(
+            message =  error,
+            actionLabel = "Try again.",
+            duration = SnackbarDuration.Indefinite
+        )
+        
+        when(result){
+            SnackbarResult.ActionPerformed -> {
+                viewModel.apodUiStatePhoto(BuildConfig.API_KEY)
+                viewModel.apodUiStateVideo(BuildConfig.API_KEY)
+            }
+
+            SnackbarResult.Dismissed -> {
+            }
+        }
     }
 }
 
+@Composable
+fun Title(title: String, modifier: Modifier){
+    Text(
+        modifier = Modifier
+            .padding(horizontal = 10.dp, vertical = 15.dp)
+            .fillMaxWidth(1f),
+        text = title,
+        textAlign = TextAlign.Center,
+        fontSize = 24.sp,
+        fontFamily = inconsalataFamily,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun Image(imageUrl: String, modifier: Modifier, context: Context) {
+
+
+    var scale by remember {
+        mutableFloatStateOf(1f)
+    }
+
+    var offset by remember {
+        mutableStateOf(Offset.Zero)
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(10.dp))
+    ) {
+
+        val state = rememberTransformableState { zoomChange, panChange, rotationChange ->
+            scale = (scale * zoomChange).coerceIn(1f, 5f)
+
+            val extraWidth = (scale - 1) * constraints.maxWidth
+            val extraHeight = (scale - 1) * constraints.maxHeight
+
+            val maxX = extraWidth / 2
+            val maxY = extraHeight / 2
+
+            offset = Offset(
+                x = (offset.x + panChange.x).coerceIn(-maxX, maxX),
+                y = (offset.y + panChange.y).coerceIn(-maxY, maxY),
+            )
+        }
+
+        AsyncImage(
+            imageUrl,
+            contentDescription = "space",
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .clip(RoundedCornerShape(size = 10.dp))
+                .wrapContentSize(Alignment.Center)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
+                .transformable(state),
+
+            )
+       // Log.d("statee", "Painter: ${painter}, State: ${painter.state}")
+
+    }
+}
 fun Modifier.shimmerEffect(): Modifier = composed {
     var size by remember {
         mutableStateOf(IntSize.Zero)
@@ -576,7 +574,6 @@ fun Modifier.shimmerEffect(): Modifier = composed {
             animation = tween(1000)
         ), label = ""
     )
-
     background(
         brush = Brush.linearGradient(
             colors = listOf(
@@ -594,32 +591,12 @@ fun Modifier.shimmerEffect(): Modifier = composed {
 }
 
 
-//topBar = {
-//    TopAppBar(
-//        colors = TopAppBarDefaults.topAppBarColors(
-//            containerColor = MaterialTheme.colorScheme.primaryContainer,
-//            titleContentColor = MaterialTheme.colorScheme.primary
-//        ),
-//        modifier = modifier,
-//        title = {
-//            Row {
-//                Image(
-//                    painter = painterResource(id = R.drawable.logo) ,
-//                    contentDescription = "app_logo" )
-//                Text(
-//                    text = "Exciting Space",
-//                    fontFamily = FontFamily.Default,
-//                    fontSize = 24.sp,
-//                    fontWeight = FontWeight.Bold,
-//                    modifier = Modifier
-//                        .align(Alignment.CenterVertically)
-//                        .fillMaxWidth(1f)
-//                        .padding(horizontal = 20.dp)
-//                )
-//            }
-//        }
-//    )
-//},
+
+
+
+
+
+
 
 
 

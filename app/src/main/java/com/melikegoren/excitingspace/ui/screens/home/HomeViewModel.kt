@@ -1,9 +1,11 @@
 package com.melikegoren.excitingspace.ui.screens.home
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.melikegoren.excitingspace.BuildConfig
+import coil.compose.AsyncImagePainter
 import com.melikegoren.excitingspace.common.Result
 import com.melikegoren.excitingspace.common.asResult
 import com.melikegoren.excitingspace.data.remote.ApodApiService
@@ -19,12 +21,12 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val apodRepository: ApodRepository,
-    private val apiService: ApodApiService
 ): ViewModel() {
 
 
     private var _uiState = MutableStateFlow<ApodUiState>(ApodUiState.Loading)
     val uiState: StateFlow<ApodUiState> = _uiState.asStateFlow()
+
 
     fun apodUiStatePhoto(apiKey: String){
         viewModelScope.launch {
@@ -73,6 +75,12 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
+        }
+    }
+
+    fun saveApodImageToGallery(painter: AsyncImagePainter, context: Context, url: String, title: String){
+        viewModelScope.launch {
+            apodRepository.saveImageToGallery(painter, context, url, title)
         }
     }
 
