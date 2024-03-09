@@ -3,24 +3,13 @@ package com.melikegoren.excitingspace.data.repository
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toBitmapOrNull
 import coil.compose.AsyncImagePainter
-import coil.compose.ImagePainter
-import com.melikegoren.excitingspace.common.Result
-import com.melikegoren.excitingspace.data.local.ApodDao
-import com.melikegoren.excitingspace.data.local.toApodPhotoModel
-import com.melikegoren.excitingspace.data.local.toApodVideoModel
 import com.melikegoren.excitingspace.data.remote.ApodApiService
 import com.melikegoren.excitingspace.data.remote.dto.ToApodPhotoModel
-import com.melikegoren.excitingspace.data.remote.dto.toApodEntityPhoto
-import com.melikegoren.excitingspace.data.remote.dto.toApodEntityVideo
 import com.melikegoren.excitingspace.data.remote.dto.toApodVideoModel
 import com.melikegoren.excitingspace.data.remote.model.ApodPhotoModel
 import com.melikegoren.excitingspace.data.remote.model.ApodVideoModel
@@ -31,7 +20,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import javax.inject.Inject
 
 class ApodRepositoryImpl @Inject constructor(

@@ -1,14 +1,12 @@
 package com.melikegoren.excitingspace.ui.screens.home
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImagePainter
 import com.melikegoren.excitingspace.common.Result
 import com.melikegoren.excitingspace.common.asResult
-import com.melikegoren.excitingspace.data.remote.ApodApiService
 import com.melikegoren.excitingspace.data.repository.ApodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
